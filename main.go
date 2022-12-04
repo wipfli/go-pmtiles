@@ -14,6 +14,7 @@ import (
 	"runtime/pprof"
 	"strconv"
 	"time"
+	"sort"
 )
 
 func main() {
@@ -40,6 +41,39 @@ pmtiles serve "s3://BUCKET_NAME"`
 	}
 
 	switch os.Args[1] {
+	case "extract":
+		var z uint8 = 14
+		var x_min uint32 = 0
+		var x_max uint32 = 10000 // included
+		var y_min uint32 = 0
+		var y_max uint32 = 10000 // included
+		
+		var tile_ids []uint64
+
+		for x := x_min; x <= x_max; x++ {
+			for y := y_min; y <= y_max; y++ {
+				// fmt.Println(z, x, y, pmtiles.ZxyToId(z, x, y))
+				tile_ids = append(tile_ids, pmtiles.ZxyToId(z, x, y))
+			}
+		}
+
+		sort.Slice(tile_ids, func(i, j int) bool { return tile_ids[i] < tile_ids[j]})
+
+		var tile_id_ranges [][2]uint64
+
+		tile_id_ranges = append(tile_id_ranges, [2]uint64{tile_ids[0], tile_ids[0]})
+
+		for i := 1; i < len(tile_ids); i++ {
+			if tile_id_ranges[len(tile_id_ranges)-1][1] + 1 == tile_ids[i] {
+				tile_id_ranges[len(tile_id_ranges)-1][1] = tile_ids[i]
+			} else {
+				tile_id_ranges = append(tile_id_ranges, [2]uint64{tile_ids[i], tile_ids[i]})
+			}
+		}
+
+		fmt.Println(len(tile_ids))
+		fmt.Println(len(tile_id_ranges))
+		
 	case "show":
 		err := pmtiles.Show(logger, os.Args[2:])
 
